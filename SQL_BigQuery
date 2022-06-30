@@ -1,0 +1,79 @@
+-- quick check to ensure data is in order 
+
+SELECT *
+FROM `my-project-01-345512.covid_proj.deaths`
+ORDER BY 3, 4
+
+SELECT *
+FROM `my-project-01-345512.covid_proj.vaccinations`
+
+
+-- data that i'll be using
+SELECT location, date, total_cases, new_cases, total_deaths, population
+FROM `my-project-01-345512.covid_proj.deaths`
+WHERE continent is not null
+ORDER BY 1, 2
+
+-- looking at total cases vs total deaths 
+SELECT location, date, total_cases, total_deaths, (total_deaths/total_cases)*100 as death_percent
+FROM `my-project-01-345512.covid_proj.deaths`
+ORDER BY 1,2 
+
+-- likelihood of dying if you contract covid in Singapore
+SELECT location, date, total_cases, total_deaths, (total_deaths/total_cases)*100 as death_percent
+FROM `my-project-01-345512.covid_proj.deaths`
+WHERE location = 'Singapore'
+ORDER BY 1,2 
+
+
+-- percent of population who got covid 
+SELECT location, date, population, total_cases, (total_cases/population)*100 as covid_percent
+FROM `my-project-01-345512.covid_proj.deaths`
+WHERE location = 'Singapore'
+ORDER BY 1,2 
+
+-- countries with highest infection rate compared to population 
+SELECT location, population, MAX(total_cases) as highest_infection_count,MAX((total_cases/population))*100 as infected_pop_percent
+FROM `my-project-01-345512.covid_proj.deaths`
+GROUP BY location, population
+ORDER BY infected_pop_percent desc
+
+-- countries with highest death count per population 
+SELECT location, MAX(total_deaths) as total_death_counts
+FROM `my-project-01-345512.covid_proj.deaths`
+WHERE continent is not NULL
+GROUP BY location
+ORDER BY total_death_counts desc
+
+-- continents with the highest death counts 
+
+SELECT continent, MAX(total_deaths) as total_death_counts
+FROM `my-project-01-345512.covid_proj.deaths`
+WHERE continent is not NULL
+GROUP BY continent
+ORDER BY total_death_counts desc
+
+
+-- global numbers by date 
+
+SELECT date, SUM(new_cases) as total_cases, SUM(new_deaths) as total_deaths, (SUM(new_deaths)/SUM(new_cases))*100 as death_pct 
+FROM `my-project-01-345512.covid_proj.deaths`
+WHERE continent is not null 
+GROUP by date
+ORDER BY 1,2 
+
+-- latest global numbers as of 30/06/2022
+
+SELECT SUM(new_cases) as total_cases, SUM(new_deaths) as total_deaths, (SUM(new_deaths)/SUM(new_cases))*100 as death_percent
+FROM `my-project-01-345512.covid_proj.deaths`
+WHERE continent is not null 
+ORDER BY 1,2 
+
+
+-- population that has received at least one shot of vaccine
+SELECT dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations, sum(vac.new_vaccinations) OVER (PARTITION BY dea.location ORDER BY dea.location, dea.date) as rolling_total
+FROM `my-project-01-345512.covid_proj.deaths` dea
+JOIN `my-project-01-345512.covid_proj.vaccinations` vac
+ON dea.location = vac.location and dea.date = vac.date
+WHERE dea.continent is not null 
+ORDER BY 2,3 
